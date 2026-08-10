@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shared Resume | Hirely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/resume-builder.css">
+</head>
+<body style="background:#f1f5f9; padding:20px 0;">
+  <main>
+    <div class="container" style="max-width:900px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <a class="brand" href="/"><span class="brand-mark">H</span>Hirely</a>
+        <button id="downloadSharedPdf" class="btn btn-primary" style="display:none;">
+          <i class="fa-solid fa-file-pdf"></i> Download PDF
+        </button>
+      </div>
+      <div id="resumePreview" class="resume-paper" style="box-shadow:0 10px 30px rgba(0,0,0,0.08); background:#fff; padding:40px; border-radius:12px;">
+        <div class="loading-box">Loading resume...</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+  <script type="module">
+    import { api, qs } from "/js/core/api.js";
+    import { escapeHtml } from "/js/core/ui.js";
+
+    const token = qs("token");
+    const previewEl = document.getElementById("resumePreview");
+    const pdfBtn = document.getElementById("downloadSharedPdf");
+
+    if (!token) {
+      previewEl.innerHTML = '<div class="empty-state">Invalid or missing share token.</div>';
+    } else {
+      try {
+        const r = await api.get(`/resumes/shared/${token}`);
+        const x = r.data;
+        const p = x.personalDetails || {};
+
+        pdfBtn.style.display = "inline-flex";
+        pdfBtn.onclick = () => {
+          window.open(`/api/v1/resumes/shared/${token}/download`, "_blank");
+        };
+
+        const block = (title, content) => content ? `<div class="resume-block" style="margin-top:24px;"><div class="resume-block-title" style="font-weight:700; font-size:14px; letter-spacing:0.5px; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:10px; color:#2563eb;">${title}</div>${content}</div>` : "";
+
+        previewEl.innerHTML = `
+          <h1 style="margin:0; font-size:26px;">${escapeHtml(p.fullName || x.title || "Resume")}</h1>
+          <div class="resume-headline" style="color:#2563eb; font-weight:500; margin-top:4px;">${escapeHtml(p.headline || "")}</div>
+          <div class="resume-contact" style="color:#64748b; font-size:13px; margin-top:6px;">
+            ${[p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio].filter(Boolean).map(escapeHtml).join(" · ")}
+          </div>
+
+          ${block("SUMMARY", x.summary ? `<p style="white-space:pre-line; color:#334155; line-height:1.6;">${escapeHtml(x.summary)}</p>` : "")}
+
+          ${block("EXPERIENCE", (x.experience || []).map(e => `
+            <div class="resume-item" style="margin-bottom:14px;">
+              <b style="font-size:15px; color:#1e293b;">${escapeHtml(e.designation || "Role")} · ${escapeHtml(e.company || "Company")}</b>
+              <p style="white-space:pre-line; margin-top:4px; color:#475569;">${escapeHtml(e.description || "")}</p>
+            </div>
+          `).join(""))}
+
+          ${block("EDUCATION", (x.education || []).map(ed => `
+            <div class="resume-item" style="margin-bottom:10px;">
+              <b style="font-size:15px; color:#1e293b;">${escapeHtml(ed.degree || "Degree")}</b>
+              <p style="margin-top:2px; color:#475569;">${escapeHtml([ed.college, ed.university, ed.percentage].filter(Boolean).join(" · "))}</p>
+            </div>
+          `).join(""))}
+
+          ${block("SKILLS", `<div class="resume-skills" style="display:flex; flex-wrap:wrap; gap:8px;">${(x.skills || []).map(s => `<span class="tag" style="background:#e0e7ff; color:#3730a3; padding:4px 10px; border-radius:6px; font-size:13px;">${escapeHtml(s)}</span>`).join("")}</div>`)}
+
+          ${block("PROJECTS", (x.projects || []).map(pj => `
+            <div class="resume-item" style="margin-bottom:12px;">
+              <b style="font-size:15px; color:#1e293b;">${escapeHtml(pj.title || "Project")}</b>
+              <p style="margin-top:2px; color:#475569;">${escapeHtml(pj.technology || "")} ${pj.description ? "— " + escapeHtml(pj.description) : ""}</p>
+            </div>
+          `).join(""))}
+
+          ${block("CERTIFICATES", (x.certificates || []).map(c => `
+            <div class="resume-item" style="margin-bottom:8px;">
+              <b>${escapeHtml(c.name || "Certificate")}</b> — <span style="color:#64748b;">${escapeHtml(c.issuer || "")}</span>
+            </div>
+          `).join(""))}
+        `;
+      } catch (e) {
+        previewEl.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

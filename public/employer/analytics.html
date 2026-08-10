@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Analytics | Hirely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+  <header id="navbar"></header>
+  <main>
+    <section class="page-head">
+      <div class="container">
+        <span class="eyebrow">EMPLOYER WORKSPACE</span>
+        <h1>Hiring Analytics</h1>
+        <p>Real-time insights into your job posting reach and candidate conversion rates.</p>
+      </div>
+    </section>
+
+    <section class="container section">
+      <div class="feature-grid">
+        <article class="feature-card">
+          <h3>Total Job Views</h3>
+          <strong id="statViews" style="font:700 36px 'Poppins', sans-serif; color:#2563eb;">—</strong>
+          <p>Total candidate visits across all published postings.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Total Applications</h3>
+          <strong id="statApps" style="font:700 36px 'Poppins', sans-serif; color:#10b981;">—</strong>
+          <p>Submissions received from job seekers.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Conversion Rate</h3>
+          <strong id="statConversion" style="font:700 36px 'Poppins', sans-serif; color:#8b5cf6;">—</strong>
+          <p>Applications per 100 job views.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Active Listings</h3>
+          <strong id="statActive" style="font:700 36px 'Poppins', sans-serif; color:#f59e0b;">—</strong>
+          <p>Currently open & accepting applications.</p>
+        </article>
+      </div>
+
+      <div class="dashboard-card" style="margin-top:30px;">
+        <h3>Listing Performance Breakdown</h3>
+        <div id="jobBreakdownList" style="margin-top:16px;">
+          <div class="loading-box">Loading analytics...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="footer"></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+  <script type="module">
+    import { renderLayout } from "/js/components/layout.js";
+    import { api } from "/js/core/api.js";
+    import { escapeHtml } from "/js/core/ui.js";
+
+    await renderLayout();
+
+    try {
+      const [jobsRes, appsRes] = await Promise.all([
+        api.get("/jobs/employer/mine?limit=100"),
+        api.get("/applications/employer/all?limit=100")
+      ]);
+
+      const jobs = jobsRes.data || [];
+      const apps = appsRes.data || [];
+
+      const totalViews = jobs.reduce((sum, j) => sum + (j.viewsCount || 0), 0);
+      const totalApps = apps.length || jobs.reduce((sum, j) => sum + (j.applicationsCount || 0), 0);
+      const activeCount = jobs.filter(j => j.status === 'published').length;
+      const conversionRate = totalViews > 0 ? ((totalApps / totalViews) * 100).toFixed(1) : "0.0";
+
+      document.getElementById("statViews").textContent = totalViews.toLocaleString();
+      document.getElementById("statApps").textContent = totalApps.toLocaleString();
+      document.getElementById("statConversion").textContent = `${conversionRate}%`;
+      document.getElementById("statActive").textContent = activeCount;
+
+      const breakdownEl = document.getElementById("jobBreakdownList");
+      if (!jobs.length) {
+        breakdownEl.innerHTML = '<div class="empty-state">No jobs posted yet to show performance breakdown.</div>';
+      } else {
+        breakdownEl.innerHTML = `
+          <div class="table-list">
+            ${jobs.map(j => {
+              const views = j.viewsCount || 0;
+              const applications = j.applicationsCount || 0;
+              const rate = views > 0 ? ((applications / views) * 100).toFixed(1) : "0.0";
+              return `
+                <div class="table-row" style="display:grid; grid-template-columns: 3fr 1fr 1fr 1fr 1fr; gap:12px; align-items:center;">
+                  <div>
+                    <b>${escapeHtml(j.title)}</b>
+                    <small style="display:block; color:#64748b;">${escapeHtml(j.location?.city || "Remote")} · Status: ${j.status}</small>
+                  </div>
+                  <div><strong>${views}</strong> <span style="color:#64748b; font-size:12px;">views</span></div>
+                  <div><strong>${applications}</strong> <span style="color:#64748b; font-size:12px;">applicants</span></div>
+                  <div><strong>${rate}%</strong> <span style="color:#64748b; font-size:12px;">conv.</span></div>
+                  <div><a href="/employer/applicants.html?jobId=${j._id}" class="text-link">Candidates →</a></div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+    } catch (e) {
+      document.getElementById("jobBreakdownList").innerHTML = `<div class="empty-state">Please sign in as an employer.</div>`;
+    }
+  </script>
+</body>
+</html>

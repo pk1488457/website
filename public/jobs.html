@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jobs | Hirely</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/components.css"></head>
+<body><header id="navbar"></header>
+<main><section class="page-head"><div class="container"><span class="eyebrow">OPPORTUNITIES</span><h1>Find your next role</h1><p>Search thousands of opportunities from growing teams and established companies.</p></div></section>
+<section class="container jobs-layout">
+<aside class="filters-card"><div class="filter-title"><b>Filters</b><button id="clearFilters" class="btn-ghost">Clear</button></div>
+<label>Keyword<input id="keyword" class="input" placeholder="e.g. Flutter"></label>
+<label>Location<input id="location" class="input" placeholder="e.g. Bengaluru"></label>
+<label>Job type<select id="jobType" class="input"><option value="">Any type</option><option value="full-time">Full time</option><option value="part-time">Part time</option><option value="contract">Contract</option><option value="internship">Internship</option><option value="freelance">Freelance</option></select></label>
+<label>Experience<select id="experience" class="input"><option value="">Any experience</option><option value="0">Fresher</option><option value="1">1+ years</option><option value="3">3+ years</option><option value="5">5+ years</option></select></label>
+<label class="check"><input type="checkbox" id="remote"> Remote only</label>
+<button id="applyFilters" class="btn btn-primary full">Apply filters</button></aside>
+<div class="jobs-results"><div class="results-toolbar"><div><b id="resultCount">Jobs</b><span id="resultText">Discover your next opportunity</span></div><select id="sort" class="input compact"><option value="-createdAt">Newest</option><option value="salaryMax">Salary</option><option value="title">Title</option></select></div><div id="jobsList" class="stack-list"></div><div id="pagination" class="pagination"></div></div>
+</section></main><footer id="footer"></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script><script type="module" src="/js/pages/jobs.js"></script></body></html>

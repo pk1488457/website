@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Applicants | Hirely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+  <header id="navbar"></header>
+  <main>
+    <section class="page-head">
+      <div class="container page-head-row">
+        <div>
+          <span class="eyebrow">EMPLOYER WORKSPACE</span>
+          <h1>Candidate Applicants</h1>
+          <p>Review candidate profiles, cover letters, and manage hiring statuses.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container section">
+      <div id="applicantsContainer" class="dashboard-card">
+        <div class="loading-box">Loading applicant data...</div>
+      </div>
+    </section>
+  </main>
+  <footer id="footer"></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+  <script type="module">
+    import { renderLayout } from "/js/components/layout.js";
+    import { api, qs } from "/js/core/api.js";
+    import { escapeHtml, formatDate, toast } from "/js/core/ui.js";
+
+    await renderLayout();
+    const container = document.getElementById("applicantsContainer");
+    const targetJobId = qs("jobId");
+
+    async function loadApplicants() {
+      try {
+        const endpoint = targetJobId
+          ? `/applications/job/${targetJobId}?limit=100`
+          : `/applications/employer/all?limit=100`;
+
+        const r = await api.get(endpoint);
+        const apps = r.data || [];
+
+        if (!apps.length) {
+          container.innerHTML = '<div class="empty-state">No candidates have applied yet.</div>';
+          return;
+        }
+
+        const statusOptions = [
+          { val: 'applied', label: 'Applied' },
+          { val: 'under_review', label: 'Under Review' },
+          { val: 'shortlisted', label: 'Shortlisted' },
+          { val: 'interview', label: 'Interview' },
+          { val: 'selected', label: 'Selected' },
+          { val: 'rejected', label: 'Rejected' },
+          { val: 'withdrawn', label: 'Withdrawn' }
+        ];
+
+        container.innerHTML = `
+          <div class="card-heading" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div>
+              <h3 style="margin:0;">Candidates (${r.total || apps.length})</h3>
+              <p style="margin:4px 0 0 0; color:#64748b; font-size:13px;">Manage hiring status and candidate details</p>
+            </div>
+            ${targetJobId ? `<a class="btn-ghost" href="/employer/applicants.html">View All Candidates</a>` : ''}
+          </div>
+          <div class="table-list" style="display:grid; gap:16px;">
+            ${apps.map(x => {
+              const candidate = x.applicant || {};
+              const jobTitle = x.job?.title || "Job Posting";
+              const resumeUrl = x.resumeUrl || "#";
+
+              return `
+                <div class="table-row" style="display:grid; grid-template-columns: 2fr 2fr 1.5fr 1.5fr; gap:16px; align-items:center; padding:16px; border:1px solid #e2e8f0; border-radius:12px;">
+                  <div>
+                    <b style="font-size:15px; color:#1e293b;">${escapeHtml(candidate.name || "Candidate")}</b>
+                    <small style="display:block; color:#64748b; margin-top:2px;">
+                      <i class="fa-regular fa-envelope"></i> ${escapeHtml(candidate.email || "N/A")}
+                      ${candidate.phone ? ` · <i class="fa-solid fa-phone"></i> ${escapeHtml(candidate.phone)}` : ""}
+                    </small>
+                  </div>
+                  <div>
+                    <span style="font-weight:600; color:#334155;">${escapeHtml(jobTitle)}</span>
+                    <small style="display:block; color:#64748b; margin-top:2px;">Applied: ${formatDate(x.createdAt)}</small>
+                  </div>
+                  <div>
+                    <a href="${resumeUrl}" target="_blank" class="btn-ghost" style="font-size:13px; text-decoration:none;">
+                      <i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i> View Resume
+                    </a>
+                  </div>
+                  <div>
+                    <select class="input status-select" data-id="${x._id}" style="font-size:13px; padding:6px 10px;">
+                      ${statusOptions.map(opt => `<option value="${opt.val}" ${x.status === opt.val ? 'selected' : ''}>${opt.label}</option>`).join('')}
+                    </select>
+                  </div>
+                  ${x.coverLetter ? `
+                    <div style="grid-column: 1 / -1; background:#f8fafc; padding:12px; border-radius:8px; font-size:13px; color:#475569;">
+                      <strong>Cover Letter:</strong> ${escapeHtml(x.coverLetter)}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        document.querySelectorAll(".status-select").forEach(select => {
+          select.onchange = async (e) => {
+            const appId = e.target.dataset.id;
+            const newStatus = e.target.value;
+            try {
+              await api.put(`/applications/${appId}/status`, { status: newStatus });
+              toast("Applicant status updated");
+            } catch (err) {
+              toast(err.message || "Failed to update status", "error");
+              loadApplicants();
+            }
+          };
+        });
+
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    loadApplicants();
+  </script>
+</body>
+</html>

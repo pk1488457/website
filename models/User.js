@@ -40,6 +40,19 @@ const UserSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    location: {
+      type: String,
+      trim: true,
+    },
+    headline: {
+      type: String,
+      trim: true,
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Bio cannot be more than 500 characters'],
+    },
     avatar: {
       type: String,
       default: 'default-avatar.png',

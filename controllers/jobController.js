@@ -90,9 +90,16 @@ exports.getJob = asyncHandler(async (req, res, next) => {
 // @route   POST /api/v1/jobs
 // @access  Private (employer, admin)
 exports.createJob = asyncHandler(async (req, res, next) => {
-  // Every job must belong to a company owned by the posting employer -
-  // this prevents an employer from posting a job under someone else's
-  // company by passing an arbitrary companyId in the request body.
+  // If company ID is not explicitly passed, auto-discover employer's company
+  if (!req.body.company) {
+    const userCompany = await Company.findOne({ owner: req.user.id });
+    if (userCompany) {
+      req.body.company = userCompany._id;
+    } else {
+      return next(new ErrorResponse('Please create a company profile first before posting jobs.', 400));
+    }
+  }
+
   const company = await Company.findById(req.body.company);
   if (!company) {
     return next(new ErrorResponse('Company not found', 404));

@@ -47,7 +47,7 @@ exports.updatePasswordRules = [
 
 exports.createJobRules = [
   body('title').trim().notEmpty().withMessage('Job title is required').isLength({ max: 120 }),
-  body('company').notEmpty().withMessage('Company id is required').isMongoId().withMessage('Invalid company id'),
+  body('company').optional().isMongoId().withMessage('Invalid company id'),
   body('description').trim().notEmpty().withMessage('Job description is required'),
   body('jobType')
     .isIn(['full-time', 'part-time', 'contract', 'internship', 'freelance'])

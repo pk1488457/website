@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Company Profile | Hirely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+  <header id="navbar"></header>
+  <main>
+    <section class="page-head">
+      <div class="container">
+        <span class="eyebrow">EMPLOYER WORKSPACE</span>
+        <h1>Company Profile</h1>
+        <p>Present your team, culture, and organization to prospective candidates.</p>
+      </div>
+    </section>
+
+    <section class="container narrow section">
+      <div class="dashboard-card">
+        <form id="companyForm" class="form-grid">
+          <label class="span-2">Company Name <span style="color:#ef4444">*</span>
+            <input class="input" name="name" required placeholder="e.g. Acme Tech Solutions">
+          </label>
+
+          <label>Website
+            <input class="input" name="website" placeholder="https://company.com">
+          </label>
+
+          <label>Industry
+            <input class="input" name="industry" placeholder="e.g. Technology / Software">
+          </label>
+
+          <label>Company Size
+            <select class="input" name="companySize">
+              <option value="">Select size</option>
+              <option value="1-10">1-10 employees</option>
+              <option value="11-50">11-50 employees</option>
+              <option value="51-200">51-200 employees</option>
+              <option value="201-500">201-500 employees</option>
+              <option value="501-1000">501-1000 employees</option>
+              <option value="1000+">1000+ employees</option>
+            </select>
+          </label>
+
+          <label>Headquarters City
+            <input class="input" name="city" placeholder="e.g. Bengaluru">
+          </label>
+
+          <label class="span-2">Company Description
+            <textarea class="input" rows="6" name="description" placeholder="Describe your company mission, values, and workplace culture..."></textarea>
+          </label>
+
+          <div class="span-2" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+            <span id="companyStatus" style="font-size:13px; color:#64748b;">Loading profile...</span>
+            <button type="submit" class="btn btn-primary" id="saveCompanyBtn">Save Profile</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+  <footer id="footer"></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+  <script type="module">
+    import { renderLayout } from "/js/components/layout.js";
+    import { api } from "/js/core/api.js";
+    import { toast } from "/js/core/ui.js";
+
+    await renderLayout();
+    const form = document.getElementById("companyForm");
+    const statusEl = document.getElementById("companyStatus");
+    let existingCompany = null;
+
+    try {
+      const res = await api.get("/companies/employer/mine");
+      if (res.data) {
+        existingCompany = res.data;
+        statusEl.textContent = "Existing company profile loaded";
+        form.elements["name"].value = existingCompany.name || "";
+        form.elements["website"].value = existingCompany.website || "";
+        form.elements["industry"].value = existingCompany.industry || "";
+        form.elements["companySize"].value = existingCompany.companySize || "";
+        form.elements["city"].value = existingCompany.location?.city || "";
+        form.elements["description"].value = existingCompany.description || "";
+      } else {
+        statusEl.textContent = "Create your new company profile below";
+      }
+    } catch (e) {
+      statusEl.textContent = "Please sign in as an employer";
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(form));
+      payload.location = { city: payload.city || "" };
+      delete payload.city;
+
+      const saveBtn = document.getElementById("saveCompanyBtn");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      try {
+        if (existingCompany) {
+          await api.put(`/companies/${existingCompany._id}`, payload);
+          toast("Company profile updated successfully!");
+        } else {
+          const res = await api.post("/companies", payload);
+          existingCompany = res.data;
+          toast("Company profile created successfully!");
+          statusEl.textContent = "Existing company profile loaded";
+        }
+      } catch (err) {
+        toast(err.message || "Failed to save company profile", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Profile";
+      }
+    };
+  </script>
+</body>
+</html>

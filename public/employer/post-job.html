@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Post Job | Hirely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+  <header id="navbar"></header>
+  <main>
+    <section class="page-head">
+      <div class="container">
+        <span class="eyebrow">EMPLOYER WORKSPACE</span>
+        <h1>Post a New Job</h1>
+        <p>Create a clear listing to attract top candidates.</p>
+      </div>
+    </section>
+
+    <section class="container narrow section">
+      <div id="companyCheckNotice" style="display:none; margin-bottom:20px; background:#fef3c7; color:#92400e; padding:16px; border-radius:12px; border:1px solid #fde68a;">
+        <strong>Company Profile Required!</strong>
+        <p style="margin:6px 0 10px 0; font-size:14px;">You must set up your company profile before posting jobs so candidates know who is hiring.</p>
+        <a href="/employer/company.html" class="btn btn-primary" style="display:inline-block; font-size:13px;">Set Up Company Profile →</a>
+      </div>
+
+      <div class="dashboard-card">
+        <form id="jobForm" class="form-grid">
+          <input type="hidden" name="company" id="companyId">
+          <label>Job Title <span style="color:#ef4444">*</span>
+            <input class="input" name="title" required placeholder="e.g. Senior Full Stack Engineer">
+          </label>
+          <label>Job Type <span style="color:#ef4444">*</span>
+            <select class="input" name="jobType" required>
+              <option value="full-time">Full time</option>
+              <option value="part-time">Part time</option>
+              <option value="contract">Contract</option>
+              <option value="internship">Internship</option>
+              <option value="freelance">Freelance</option>
+            </select>
+          </label>
+          <label>City Location
+            <input class="input" name="city" placeholder="e.g. Mohali">
+          </label>
+          <label>Industry
+            <input class="input" name="industry" placeholder="e.g. Information Technology">
+          </label>
+          <label>Minimum Experience (years)
+            <input class="input" type="number" name="experienceMin" min="0" value="0">
+          </label>
+          <label>Maximum Experience (years)
+            <input class="input" type="number" name="experienceMax" min="0" placeholder="e.g. 5">
+          </label>
+          <label>Min Annual Salary (₹)
+            <input class="input" type="number" name="salaryMin" placeholder="e.g. 600000">
+          </label>
+          <label>Max Annual Salary (₹)
+            <input class="input" type="number" name="salaryMax" placeholder="e.g. 1200000">
+          </label>
+          <label class="check span-2" style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" name="isRemote"> Remote position
+          </label>
+          <label class="span-2">Skills <span class="muted-text">(comma separated)</span>
+            <input class="input" name="skills" placeholder="e.g. React, Node.js, MongoDB, TypeScript">
+          </label>
+          <label class="span-2">Job Description <span style="color:#ef4444">*</span>
+            <textarea class="input" rows="7" name="description" required placeholder="Detail the role, team, and day-to-day work..."></textarea>
+          </label>
+          <label class="span-2">Requirements <span class="muted-text">(comma separated or newlines)</span>
+            <textarea class="input" rows="4" name="requirements" placeholder="e.g. 3+ years experience, Strong knowledge of SQL..."></textarea>
+          </label>
+          <label class="span-2">Responsibilities <span class="muted-text">(comma separated or newlines)</span>
+            <textarea class="input" rows="4" name="responsibilities" placeholder="e.g. Design scalable REST APIs, Lead code reviews..."></textarea>
+          </label>
+          <div class="span-2" style="margin-top:10px;">
+            <button type="submit" class="btn btn-primary" id="submitJobBtn">Publish Job Listing</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+  <footer id="footer"></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+  <script type="module">
+    import { renderLayout } from "/js/components/layout.js";
+    import { api } from "/js/core/api.js";
+    import { toast } from "/js/core/ui.js";
+
+    await renderLayout();
+
+    const companyCheckNotice = document.getElementById("companyCheckNotice");
+    const jobForm = document.getElementById("jobForm");
+    const companyIdInput = document.getElementById("companyId");
+    let currentCompany = null;
+
+    try {
+      const res = await api.get("/companies/employer/mine");
+      if (res.data) {
+        currentCompany = res.data;
+        companyIdInput.value = currentCompany._id;
+      } else {
+        companyCheckNotice.style.display = "block";
+      }
+    } catch (e) {
+      toast("Please sign in as an employer", "error");
+    }
+
+    jobForm.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!currentCompany) {
+        toast("Please create a company profile before posting jobs", "error");
+        location.href = "/employer/company.html";
+        return;
+      }
+
+      const f = Object.fromEntries(new FormData(e.target));
+      f.company = currentCompany._id;
+      f.isRemote = f.isRemote === "on";
+      ["skills"].forEach(k => {
+        f[k] = f[k] ? f[k].split(",").map(x => x.trim()).filter(Boolean) : [];
+      });
+      ["requirements", "responsibilities"].forEach(k => {
+        f[k] = f[k] ? f[k].split(/\n|,/).map(x => x.trim()).filter(Boolean) : [];
+      });
+      f.location = { city: f.city || "" };
+      delete f.city;
+
+      const submitBtn = document.getElementById("submitJobBtn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Publishing...";
+
+      try {
+        await api.post("/jobs", f);
+        toast("Job posted successfully!");
+        setTimeout(() => location.href = "/employer/jobs.html", 700);
+      } catch (err) {
+        toast(err.message || "Failed to post job", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Publish Job Listing";
+      }
+    };
+  </script>
+</body>
+</html>

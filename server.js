@@ -72,7 +72,7 @@ app.use('/api/v1/companies', require('./routes/companies'));
 app.use('/api/v1/applications', require('./routes/applications'));
 app.use('/api/v1/saved-jobs', require('./routes/savedJobs'));
 app.use('/api/v1/resumes', require('./routes/resumes'));
-// app.use('/api/v1/users', require('./routes/users'));
+app.use('/api/v1/users', require('./routes/users'));
 // app.use('/api/v1/admin', require('./routes/admin'));
 
 // Health check
